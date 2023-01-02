@@ -22,9 +22,9 @@ func TestOne(t *testing.T) {
 		OrderBy:   "last_name",
 	}
 
-	sql := `SELECT * FROM PERSONS`
+	qry := `SELECT * FROM PERSONS`
 
-	rv, err := ConstructAndQuery(sql, "json", test)
+	rv, err := ConstructAndQuery(qry, "json", test)
 	if err != nil {
 		t.Error(err)
 	}

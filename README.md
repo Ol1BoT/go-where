@@ -28,15 +28,19 @@ func main() {
 		FirstName: "Ol1",
 	}
 
-	sql := `SELECT * FROM PERSONS`
+	qry := `SELECT * FROM PERSONS`
 
-	rv, err := ConstructAndQuery(sql, "json", test)
+	rv, err := ConstructAndQuery(qry, "json", test)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(rv.Params) // [BoT Ol1]
 	fmt.Println(rv.StringQuery) // SELECT * FROM PERSONS WHERE last_name = $1 AND first_name = $2 LIMIT 50 OFFSET 1 
+
+	db, _ := sql.Open("pgx", "connection string")
+
+	db.Query(rv.StringQuery, rv.Params...) 
 
 }
 
