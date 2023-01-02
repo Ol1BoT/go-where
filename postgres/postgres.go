@@ -12,8 +12,11 @@ type QueryStatement struct {
 }
 
 const (
-	AND = "AND"
-	OR  = "OR"
+	AND     = "AND"
+	OR      = "OR"
+	OFFSET  = "OFFSET"
+	LIMIT   = "LIMIT"
+	ORDERBY = "ORDERBY"
 )
 
 func ConstructAndQuery(query string, tag string, params any) (*QueryStatement, error) {
@@ -57,6 +60,7 @@ func ConstructQuery(query string, tag string, whereType string, params any) (*Qu
 	vals := make([]any, 0)
 	var limit string
 	var offset string
+	var orderBy string
 
 	for i := 0; i < tp.NumField(); i++ {
 		var val reflect.Value
@@ -75,7 +79,16 @@ func ConstructQuery(query string, tag string, whereType string, params any) (*Qu
 			val = val.Elem()
 		}
 
-		if strings.ToUpper(tp.Field(i).Name) == "OFFSET" {
+		if strings.ToUpper(tp.Field(i).Name) == ORDERBY {
+			if val.CanInt() {
+				orderBy = fmt.Sprintf("%d", val.Int())
+			} else {
+				orderBy = fmt.Sprintf("%s", val)
+			}
+			continue
+		}
+
+		if strings.ToUpper(tp.Field(i).Name) == OFFSET {
 			if val.CanInt() {
 				offset = fmt.Sprintf("%d", val.Int())
 			} else {
@@ -84,7 +97,7 @@ func ConstructQuery(query string, tag string, whereType string, params any) (*Qu
 			continue
 		}
 
-		if strings.ToUpper(tp.Field(i).Name) == "LIMIT" {
+		if strings.ToUpper(tp.Field(i).Name) == LIMIT {
 			if val.CanInt() {
 				limit = fmt.Sprintf("%d", val.Int())
 			} else {
@@ -106,11 +119,14 @@ func ConstructQuery(query string, tag string, whereType string, params any) (*Qu
 		vals = append(vals, val)
 	}
 
-	if offset != "" && limit != "" {
+	if orderBy != "" {
+		ob := fmt.Sprintf(" ORDER BY %s", orderBy)
+		sb.WriteString(ob)
+	}
 
+	if offset != "" && limit != "" {
 		ender := fmt.Sprintf(" LIMIT %s OFFSET %s", limit, offset)
 		sb.WriteString(ender)
-
 	}
 
 	qs.Params = vals

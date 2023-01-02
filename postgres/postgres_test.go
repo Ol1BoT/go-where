@@ -9,6 +9,7 @@ type GetParams struct {
 	Offset    *int32  `form:"offset,omitempty" json:"offset,omitempty"`
 	LastName  *string `form:"last_name,omitempty" json:"last_name,omitempty"`
 	FirstName string  `form:"first_name,omitempty" json:"first_name,omitempty"`
+	OrderBy   string  `form:"order_by,omitempty" json:"order_by,omitempty"`
 }
 
 func TestOne(t *testing.T) {
@@ -18,6 +19,7 @@ func TestOne(t *testing.T) {
 		Offset:    Ptr(int32(1)),
 		LastName:  nil,
 		FirstName: "Oli",
+		OrderBy:   "last_name",
 	}
 
 	sql := `SELECT * FROM PERSONS`

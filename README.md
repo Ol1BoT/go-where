@@ -32,7 +32,7 @@ func main() {
 
 	rv, err := ConstructAndQuery(sql, "json", test)
 	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
 
 	fmt.Println(rv.Params) // [BoT Ol1]
