@@ -4,23 +4,16 @@ import (
 	"testing"
 )
 
-type GetCommunityParams struct {
-	// Limit How many items to return at one time (max 100)
-	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Offset How to order the items returned, defaults to order by id
-	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
-
-	// LastName search by last name
-	LastName *string `form:"last_name,omitempty" json:"last_name,omitempty"`
-
-	// FirstName search by first name
-	FirstName string `form:"first_name,omitempty" json:"first_name,omitempty"`
+type GetParams struct {
+	Limit     *int32  `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset    *int32  `form:"offset,omitempty" json:"offset,omitempty"`
+	LastName  *string `form:"last_name,omitempty" json:"last_name,omitempty"`
+	FirstName string  `form:"first_name,omitempty" json:"first_name,omitempty"`
 }
 
-func TestXxx(t *testing.T) {
+func TestOne(t *testing.T) {
 
-	test := &GetCommunityParams{
+	test := &GetParams{
 		Limit:     Ptr(int32(50)),
 		Offset:    Ptr(int32(1)),
 		LastName:  Ptr("BoT"),
