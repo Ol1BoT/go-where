@@ -16,7 +16,7 @@ func TestOne(t *testing.T) {
 	test := &GetParams{
 		Limit:     Ptr(int32(50)),
 		Offset:    Ptr(int32(1)),
-		LastName:  Ptr("BoT"),
+		LastName:  nil,
 		FirstName: "Oli",
 	}
 

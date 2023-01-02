@@ -63,9 +63,13 @@ func ConstructQuery(query string, tag string, whereType string, params any) (*Qu
 		field := reflect.ValueOf(element).Field(i)
 
 		if field.Kind() == reflect.Pointer {
-			val = reflect.ValueOf(element).Field(i).Elem()
+			if field.IsNil() {
+				continue
+			}
+			val = field.Elem()
+
 		} else {
-			val = reflect.ValueOf(element).Field(i)
+			val = field
 		}
 		if val.Kind() == reflect.Pointer {
 			val = val.Elem()
