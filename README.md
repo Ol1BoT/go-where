@@ -1,14 +1,14 @@
 # GO-WHERE
 
-A basic SQL Query builder where you type out your entire query before you hit the `WHERE` clause
+A basic SQL Query builder helper where you type out your entire query before you hit the `WHERE` clause
 
 The idea is that when a user providers query params via REST, those query params are used to create a `WHERE x AND y AND z` statement.
 
 These params are usually provided in a struct by your router/framework of choice, so they can just be passed into the query constructor.
 
-by default it uses json tags to dictate what the field names in the where clause should be called, however you can change the tags.
+by default it uses `json` struct tags to dictate what the field names in the `WHERE` clause should be called, however you can change the tags.
 
-OFFSET and LIMIT and reserved keywords, so if they are passed into the query constructor, they will be applied at the end of the query and LIMIT and OFFSET, one can also not live without the other.
+`Offset`, `Limit` and `OrderBy` are reserved keywords in the struct, so if they are passed into the query constructor, they will be applied at the end of the query. Concerning `limit` and `Offset` one can also not live without the other, thus would be ignored if either one is missing.
 
 
 ```go
