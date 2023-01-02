@@ -19,7 +19,7 @@ type GetParams struct {
 	FirstName string  `form:"first_name,omitempty" json:"first_name,omitempty"`
 }
 
-func main) {
+func main() {
 
 	test := &GetParams{
 		Limit:     Ptr(int32(50)),
