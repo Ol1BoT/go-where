@@ -12,6 +12,14 @@ by default it uses `json` struct tags to dictate what the field names in the `WH
 
 
 ```go
+package main
+
+import (
+	"fmt"
+
+	gwp "github.com/Ol1BoT/go-where/postgres"
+)
+
 type GetParams struct {
 	Limit     *int32  `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset    *int32  `form:"offset,omitempty" json:"offset,omitempty"`
@@ -19,29 +27,33 @@ type GetParams struct {
 	FirstName string  `form:"first_name,omitempty" json:"first_name,omitempty"`
 }
 
+type UpdateParams struct {
+	LastName  *string `form:"last_name,omitempty" json:"last_name,omitempty"`
+	FirstName string  `form:"first_name,omitempty" json:"first_name,omitempty"`
+}
+
+type UpdateWhereParams struct {
+	PersonId int `json:"person_id"`
+}
+
 func main() {
 
-	test := &GetParams{
+	gp := &GetParams{
 		Limit:     Ptr(int32(50)),
 		Offset:    Ptr(int32(1)),
 		LastName:  Ptr("BoT"),
 		FirstName: "Ol1",
 	}
 
-	selectQry := `SELECT * FROM public.person`
+	sq := `SELECT * FROM public.person`
 
-	rv, err := SelectAndQuery(qry, "json", test)
+	rv, err := gwp.SelectAndQuery(sq, "json", gp)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(rv.Params) // [BoT Ol1]
 	fmt.Println(rv.StringQuery) // SELECT * FROM public.person WHERE last_name = $1 AND first_name = $2 LIMIT 50 OFFSET 1 
-
-	db, _ := sql.Open("pgx", "connection string")
-
-	db.Query(rv.StringQuery, rv.Params...) 
-
 
 	up := &UpdateParams{
 		FirstName: "Ol1",
@@ -52,7 +64,7 @@ func main() {
 		PersonId: 1,
 	}
 
-	update, err := UpdateAndQuery(up, uw, "public.person", JSON)
+	update, err := gwp.UpdateAndQuery(up, uw, "public.person", "json")
 	if err != nil {
 		panic(err)
 	}
