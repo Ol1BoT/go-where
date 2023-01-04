@@ -1,4 +1,4 @@
-package postgres
+package stdgwp
 
 import (
 	"fmt"
@@ -79,12 +79,12 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 		}
 
 		if uType.NumField()-1 == i {
-			sb.WriteString(fmt.Sprintf(" %s = $%d", strings.Split(tg, ",")[0], len(updateVals)+1))
+			sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
 			updateVals = append(updateVals, val)
 			continue
 		}
 
-		sb.WriteString(fmt.Sprintf(" %s = $%d,", strings.Split(tg, ",")[0], len(updateVals)+1))
+		sb.WriteString(fmt.Sprintf(" %s = ?,", strings.Split(tg, ",")[0]))
 		updateVals = append(updateVals, val)
 	}
 
@@ -154,7 +154,7 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 		if i == 0 {
 			sb.WriteString(" WHERE")
 			tg := wType.Field(i).Tag.Get(tag)
-			sb.WriteString(fmt.Sprintf(" %s = $%d", strings.Split(tg, ",")[0], len(whereVals)+len(updateVals)+1))
+			sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
 			whereVals = append(whereVals, val)
 			continue
 		}
@@ -163,7 +163,7 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 		if tg == "" {
 			return nil, fmt.Errorf("%s does not exist on %s", tag, wType.Field(i).Name)
 		}
-		sb.WriteString(fmt.Sprintf(" %s %s = $%d", whereType, strings.Split(tg, ",")[0], len(whereVals)+len(updateVals)+1))
+		sb.WriteString(fmt.Sprintf(" %s %s = ?", whereType, strings.Split(tg, ",")[0]))
 		updateVals = append(whereVals, val)
 	}
 
@@ -190,14 +190,14 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 }
 
 func SelectAndQuery(query string, tag string, params any) (*QueryStatement, error) {
-	return constructSelectQuery(query, tag, AND, params)
+	return constructQuery(query, tag, AND, params)
 }
 
 func SelectOrQuery(query string, tag string, params any) (*QueryStatement, error) {
-	return constructSelectQuery(query, tag, OR, params)
+	return constructQuery(query, tag, OR, params)
 }
 
-func constructSelectQuery(query string, tag string, whereType string, params any) (*QueryStatement, error) {
+func constructQuery(query string, tag string, whereType string, params any) (*QueryStatement, error) {
 	if tag == "" {
 		tag = JSON
 	}
@@ -272,7 +272,7 @@ func constructSelectQuery(query string, tag string, whereType string, params any
 		if len(vals) == 0 {
 			sb.WriteString(" WHERE")
 			tg := tp.Field(i).Tag.Get(tag)
-			sb.WriteString(fmt.Sprintf(" %s = $%d", strings.Split(tg, ",")[0], len(vals)+1))
+			sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
 			vals = append(vals, val)
 			continue
 		}
@@ -281,7 +281,7 @@ func constructSelectQuery(query string, tag string, whereType string, params any
 		if tg == "" {
 			return nil, fmt.Errorf("%s does not exist on %s", tag, tp.Field(i).Name)
 		}
-		sb.WriteString(fmt.Sprintf(" %s %s = $%d", whereType, strings.Split(tg, ",")[0], len(vals)+1))
+		sb.WriteString(fmt.Sprintf(" %s %s = ?", whereType, strings.Split(tg, ",")[0]))
 		vals = append(vals, val)
 	}
 

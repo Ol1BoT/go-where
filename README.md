@@ -28,19 +28,37 @@ func main() {
 		FirstName: "Ol1",
 	}
 
-	qry := `SELECT * FROM PERSONS`
+	selectQry := `SELECT * FROM public.person`
 
-	rv, err := ConstructAndQuery(qry, "json", test)
+	rv, err := SelectAndQuery(qry, "json", test)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(rv.Params) // [BoT Ol1]
-	fmt.Println(rv.StringQuery) // SELECT * FROM PERSONS WHERE last_name = $1 AND first_name = $2 LIMIT 50 OFFSET 1 
+	fmt.Println(rv.StringQuery) // SELECT * FROM public.person WHERE last_name = $1 AND first_name = $2 LIMIT 50 OFFSET 1 
 
 	db, _ := sql.Open("pgx", "connection string")
 
 	db.Query(rv.StringQuery, rv.Params...) 
+
+
+	up := &UpdateParams{
+		FirstName: "Ol1",
+		LastName:  Ptr("BoT"),
+	}
+
+	uw := &UpdateWhereParams{
+		PersonId: 1,
+	}
+
+	update, err := UpdateAndQuery(up, uw, "public.person", JSON)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(update.Params...) // [BoT Ol1 1]
+	fmt.Println(update.StringQuery) //UPDATE public.person SET last_name = $1, first_name = $2 WHERE person_id = $3
 
 }
 
