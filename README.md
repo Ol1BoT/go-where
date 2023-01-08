@@ -17,7 +17,7 @@ package main
 import (
 	"fmt"
 
-	gwp "github.com/Ol1BoT/go-where/postgres"
+	"github.com/Ol1BoT/go-where"
 )
 
 type GetParams struct {
@@ -51,7 +51,7 @@ func main() {
 		Tag:       "json",
 	}
 
-	b := NewBuilder(cfg)
+	b := gw.NewBuilder(cfg)
 
 	query := `SELECT * FROM public.person`
 
