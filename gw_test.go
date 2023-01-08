@@ -1,4 +1,4 @@
-package postgres
+package gw
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ type UpdateWhereParams struct {
 
 func TestOne(t *testing.T) {
 
-	test := &GetParams{
+	params := &GetParams{
 		Limit:     Ptr(int32(50)),
 		Offset:    Ptr(int32(1)),
 		LastName:  nil,
@@ -31,9 +31,17 @@ func TestOne(t *testing.T) {
 		OrderBy:   "last_name",
 	}
 
-	qry := `SELECT * FROM Person`
+	cfg := &Config{
+		QueryType: "pgx",
+		WhereType: "AND",
+		Tag:       "json",
+	}
 
-	rv, err := SelectAndQuery(qry, "json", test)
+	b := NewBuilder(cfg)
+
+	query := "SELECT * FROM public.person"
+
+	rv, err := b.MakeSelectQuery(query, params)
 	if err != nil {
 		t.Error(err)
 	}
@@ -50,7 +58,54 @@ func TestOne(t *testing.T) {
 		PersonId: 1,
 	}
 
-	update, err := UpdateAndQuery(up, uw, "public.Person", JSON)
+	update, err := b.MakeUpdateQuery("public.person", up, uw)
+	if err != nil {
+		t.Log(err)
+	}
+
+	t.Log(update.Params...)
+	t.Log(update.StringQuery)
+
+}
+
+func TestTwo(t *testing.T) {
+
+	params := &GetParams{
+		Limit:     Ptr(int32(50)),
+		Offset:    Ptr(int32(1)),
+		LastName:  nil,
+		FirstName: "Oli",
+		OrderBy:   "last_name",
+	}
+
+	cfg := &Config{
+		QueryType: "std",
+		WhereType: "OR",
+		Tag:       "json",
+	}
+
+	b := NewBuilder(cfg)
+
+	query := "SELECT * FROM public.person"
+
+	rv, err := b.MakeSelectQuery(query, params)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(rv.Params)
+	t.Log(rv.StringQuery)
+
+	up := &UpdateParams{
+		FirstName: "Ol1",
+		LastName:  Ptr("BoT"),
+	}
+
+	uw := &UpdateWhereParams{
+		PersonId: 1,
+	}
+
+	update, err := b.MakeUpdateQuery("public.person", up, uw)
 	if err != nil {
 		t.Log(err)
 	}

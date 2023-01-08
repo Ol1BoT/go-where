@@ -1,4 +1,4 @@
-package stdgwp
+package gw
 
 import (
 	"fmt"
@@ -6,9 +6,21 @@ import (
 	"strings"
 )
 
+type Config struct {
+	Tag       string //will default to use JSON tag if blank
+	QueryType string //Should be "std" or "pgx", will default to "std" if blank
+	WhereType string //will default to AND if blank
+}
+
 type QueryStatement struct {
 	StringQuery string
 	Params      []any
+}
+
+type Builder struct {
+	QueryType string
+	WhereType string
+	Tag       string
 }
 
 const (
@@ -18,23 +30,41 @@ const (
 	LIMIT   = "LIMIT"
 	ORDERBY = "ORDERBY"
 	JSON    = "json"
+	PGX     = "pgx"
+	STD     = "std"
 )
 
-type TStruct interface {
-	struct{} | *struct{}
-}
-
-func UpdateAndQuery(update any, where any, table string, tag string) (*QueryStatement, error) {
-	return constructUpdateQuery(update, where, table, AND, tag)
-}
-
-func constructUpdateQuery(update any, where any, table string, whereType string, tag string) (*QueryStatement, error) {
-	if tag == "" {
-		tag = JSON
+var (
+	PgxConfig = Config{
+		Tag:       JSON,
+		QueryType: "pgx",
 	}
 
-	if whereType != AND && whereType != OR {
-		return nil, fmt.Errorf("invalid where type, must be AND or OR, you provided: %s", whereType)
+	StdConfig = Config{
+		Tag:       JSON,
+		QueryType: "std",
+	}
+)
+
+func NewBuilder(c *Config) *Builder {
+	return &Builder{
+		WhereType: c.WhereType,
+		QueryType: c.QueryType,
+		Tag:       c.Tag,
+	}
+}
+
+func (b *Builder) MakeUpdateQuery(table string, update any, where any) (*QueryStatement, error) {
+	if b.Tag == "" {
+		b.Tag = JSON
+	}
+
+	if b.WhereType == "" {
+		b.WhereType = AND
+	}
+
+	if b.WhereType != AND && b.WhereType != OR {
+		return nil, fmt.Errorf("invalid where type, must be AND or OR, you provided: %s", b.WhereType)
 	}
 
 	qs := &QueryStatement{}
@@ -73,18 +103,26 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 			val = val.Elem()
 		}
 
-		tg := uType.Field(i).Tag.Get(tag)
+		tg := uType.Field(i).Tag.Get(b.Tag)
 		if tg == "" {
-			return nil, fmt.Errorf("%s does not exist on %s", tag, uType.Field(i).Name)
+			return nil, fmt.Errorf("%s does not exist on %s", b.Tag, uType.Field(i).Name)
 		}
 
 		if uType.NumField()-1 == i {
-			sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
+			if b.QueryType == PGX {
+				sb.WriteString(fmt.Sprintf(" %s = $%d", strings.Split(tg, ",")[0], len(updateVals)+1))
+			} else {
+				sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
+			}
 			updateVals = append(updateVals, val)
 			continue
 		}
 
-		sb.WriteString(fmt.Sprintf(" %s = ?,", strings.Split(tg, ",")[0]))
+		if b.QueryType == PGX {
+			sb.WriteString(fmt.Sprintf(" %s = $%d,", strings.Split(tg, ",")[0], len(updateVals)+1))
+		} else {
+			sb.WriteString(fmt.Sprintf(" %s = ?,", strings.Split(tg, ",")[0]))
+		}
 		updateVals = append(updateVals, val)
 	}
 
@@ -153,17 +191,25 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 
 		if i == 0 {
 			sb.WriteString(" WHERE")
-			tg := wType.Field(i).Tag.Get(tag)
-			sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
+			tg := wType.Field(i).Tag.Get(b.Tag)
+			if b.QueryType == PGX {
+				sb.WriteString(fmt.Sprintf(" %s = $%d", strings.Split(tg, ",")[0], len(whereVals)+len(updateVals)+1))
+			} else {
+				sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
+			}
 			whereVals = append(whereVals, val)
 			continue
 		}
 
-		tg := wType.Field(i).Tag.Get(tag)
+		tg := wType.Field(i).Tag.Get(b.Tag)
 		if tg == "" {
-			return nil, fmt.Errorf("%s does not exist on %s", tag, wType.Field(i).Name)
+			return nil, fmt.Errorf("%s does not exist on %s", b.Tag, wType.Field(i).Name)
 		}
-		sb.WriteString(fmt.Sprintf(" %s %s = ?", whereType, strings.Split(tg, ",")[0]))
+		if b.QueryType == PGX {
+			sb.WriteString(fmt.Sprintf(" %s %s = $%d", b.WhereType, strings.Split(tg, ",")[0], len(whereVals)+len(updateVals)+1))
+		} else {
+			sb.WriteString(fmt.Sprintf(" %s %s = ?", b.WhereType, strings.Split(tg, ",")[0]))
+		}
 		updateVals = append(whereVals, val)
 	}
 
@@ -189,21 +235,18 @@ func constructUpdateQuery(update any, where any, table string, whereType string,
 
 }
 
-func SelectAndQuery(query string, tag string, params any) (*QueryStatement, error) {
-	return constructQuery(query, tag, AND, params)
-}
+func (b *Builder) MakeSelectQuery(query string, params any) (*QueryStatement, error) {
 
-func SelectOrQuery(query string, tag string, params any) (*QueryStatement, error) {
-	return constructQuery(query, tag, OR, params)
-}
-
-func constructQuery(query string, tag string, whereType string, params any) (*QueryStatement, error) {
-	if tag == "" {
-		tag = JSON
+	if b.Tag == "" {
+		b.Tag = JSON
 	}
 
-	if whereType != AND && whereType != OR {
-		return nil, fmt.Errorf("invalid where type, must be AND or OR, you provided: %s", whereType)
+	if b.WhereType == "" {
+		b.WhereType = AND
+	}
+
+	if b.WhereType != AND && b.WhereType != OR {
+		return nil, fmt.Errorf("invalid where type, must be AND or OR, you provided: %s", b.WhereType)
 	}
 
 	qs := &QueryStatement{}
@@ -271,17 +314,26 @@ func constructQuery(query string, tag string, whereType string, params any) (*Qu
 
 		if len(vals) == 0 {
 			sb.WriteString(" WHERE")
-			tg := tp.Field(i).Tag.Get(tag)
-			sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
+			tg := tp.Field(i).Tag.Get(b.Tag)
+			if b.QueryType == PGX {
+				sb.WriteString(fmt.Sprintf(" %s = $%d", strings.Split(tg, ",")[0], len(vals)+1))
+			} else {
+				sb.WriteString(fmt.Sprintf(" %s = ?", strings.Split(tg, ",")[0]))
+			}
 			vals = append(vals, val)
 			continue
 		}
 
-		tg := tp.Field(i).Tag.Get(tag)
+		tg := tp.Field(i).Tag.Get(b.Tag)
 		if tg == "" {
-			return nil, fmt.Errorf("%s does not exist on %s", tag, tp.Field(i).Name)
+			return nil, fmt.Errorf("%s does not exist on %s", b.Tag, tp.Field(i).Name)
 		}
-		sb.WriteString(fmt.Sprintf(" %s %s = ?", whereType, strings.Split(tg, ",")[0]))
+
+		if b.QueryType == PGX {
+			sb.WriteString(fmt.Sprintf(" %s %s = $%d", b.WhereType, strings.Split(tg, ",")[0], len(vals)+1))
+		} else {
+			sb.WriteString(fmt.Sprintf(" %s %s = ?", b.WhereType, strings.Split(tg, ",")[0]))
+		}
 		vals = append(vals, val)
 	}
 

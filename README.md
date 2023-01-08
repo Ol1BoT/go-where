@@ -38,16 +38,24 @@ type UpdateWhereParams struct {
 
 func main() {
 
-	gp := &GetParams{
+	params := &GetParams{
 		Limit:     Ptr(int32(50)),
 		Offset:    Ptr(int32(1)),
 		LastName:  Ptr("BoT"),
 		FirstName: "Ol1",
 	}
 
-	sq := `SELECT * FROM public.person`
+	cfg := &Config{
+		QueryType: "pgx",
+		WhereType: "AND",
+		Tag:       "json",
+	}
 
-	rv, err := gwp.SelectAndQuery(sq, "json", gp)
+	b := NewBuilder(cfg)
+
+	query := `SELECT * FROM public.person`
+
+	rv, err := b.MakeSelectQuery(query,params)
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +72,7 @@ func main() {
 		PersonId: 1,
 	}
 
-	update, err := gwp.UpdateAndQuery(up, uw, "public.person", "json")
+	update, err := b.MakeUpdateQuery("public.person", up, uw)
 	if err != nil {
 		panic(err)
 	}
